@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micrometer Verification Records</title>
+    <style>
+        /* Base Styles */
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 11px; color: #000; }
+        .container { background: white; padding: 40px; margin: auto; max-width: 850px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        
+        /* Header */
+        .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 2px solid #4472c4; padding-bottom: 10px; }
+        .logo-space img { max-height: 50px; }
+        h2 { text-align: center; color: #4472c4; text-decoration: underline; margin: 0; flex-grow: 1; font-size: 20px; }
+        
+        /* Form Elements - Forced Black Text */
+        input, select { 
+            width: 95%; 
+            border: 1px solid #ccc; 
+            padding: 4px; 
+            text-align: center; 
+            box-sizing: border-box; 
+            font-size: 11px; 
+            color: #000 !important; 
+        }
+        input[readonly] { background-color: #fff; cursor: default; }
+
+        .search-container { display: flex; gap: 5px; width: 100%; }
+        .search-btn { background: #4472c4; color: white; border: none; padding: 0 12px; cursor: pointer; border-radius: 3px; font-weight: bold; }
+        .save-db-btn { background: #28a745; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 10px; margin-top: 5px; font-weight: bold; }
+        
+        /* Layout */
+        .header-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 20px; }
+        .info-row { display: flex; border-bottom: 1px solid #eee; padding: 4px 0; align-items: center; }
+        .label { font-weight: bold; width: 140px; color: #555; }
+        .value { flex-grow: 1; color: #000; }
+
+        /* Tables */
+        .unified-table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+        .unified-table th, .unified-table td { border: 1px solid #000; padding: 6px; text-align: center; color: #000; }
+        
+        /* FIXED: Changed color from white to black for visibility */
+        .unified-table th { background-color: #4472c4; color: #000 !important; font-weight: bold; }
+        
+        .sub-header { background-color: #d9e1f2; font-weight: bold; text-align: left; padding-left: 10px !important; color: #000; }
+        
+        .calc-cell { background-color: #f9f9f9; font-weight: bold; color: #000 !important; }
+        .pass { color: green !important; font-weight: bold; }
+        .fail { color: red !important; font-weight: bold; }
+        
+        /* Footer & Summary */
+        .footer-container { display: flex; flex-direction: column; align-items: center; margin-top: 30px; gap: 20px; width: 100%; }
+        .summary-row-container { width: 100%; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ccc; padding-top: 20px; }
+        .total-box { border: 2px solid #000; padding: 10px 30px; background: #f9f9f9; display: flex; align-items: center; gap: 15px; }
+        .total-result { font-size: 18px; font-weight: bold; }
+        
+        .master-layout { display: flex; align-items: flex-start; gap: 10px; width: 100%; }
+        .master-controls { display: flex; flex-direction: column; gap: 5px; margin-top: 35px; }
+        .action-btn { background: #6c757d; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 10px; font-weight: bold; min-width: 70px; }
+
+        /* Print visibility */
+        #printCodeText, #printCalDate { display: none; }
+
+        @media print {
+            .no-print { display: none !important; }
+            #printCodeText, #printCalDate { display: inline !important; color: #000 !important; }
+            #calDate { display: none !important; }
+            body { background-color: white; padding: 0; color: #000 !important; }
+            .container { border: none; box-shadow: none; width: 100%; padding: 0; }
+            input, select { border: none !important; appearance: none; background: transparent; text-align: left; color: #000 !important; }
+            .unified-table th { color: #000 !important; -webkit-print-color-adjust: exact; }
+            .calc-cell { background-color: transparent !important; color: #000 !important; }
+            @page { size: A4; margin: 1.0cm; }
+        }
+    </style>
+</head>
+<body onload="initSystem()">
+
+<div class="container">
+    <div class="top-header">
+        <div class="logo-space"><img src="muratalogo.jpg" alt="Logo"></div>
+        <h2>VERIFICATION RECORDS</h2>
+        <div style="width: 150px;"></div> 
+    </div>
+
+    <div class="header-section">
+        <div>
+            <div class="info-row">
+                <span class="label">EQUIPMENT CODE:</span>
+                <span class="value">
+                    <div class="search-container no-print">
+                        <input type="text" id="inputCode" list="equipList" placeholder="Search code..." oninput="syncPrintCode()">
+                        <datalist id="equipList"></datalist>
+                        <button class="search-btn" onclick="autoFill()">SEARCH</button>
+                    </div>
+                    <span id="printCodeText"></span>
+                </span>
+            </div>
+            <div class="info-row"><span class="label">EQUIPMENT NAME:</span><span class="value"><input type="text" id="outName"></span></div>
+            <div class="info-row"><span class="label">SERIAL NO:</span><span class="value"><input type="text" id="outSerial"></span></div>
+            <div class="info-row"><span class="label">MODEL NO:</span><span class="value"><input type="text" id="outModel"></span></div>
+            <div class="info-row"><span class="label">CLASS:</span><span class="value"><input type="text" id="outClass" value="ORDINARY 1ST CLASS" oninput="handleClassChange()"></span></div>
+            <button class="save-db-btn no-print" onclick="saveToLocal()">+ SAVE TO MEMORY</button>
+        </div>
+        <div>
+            <div class="info-row">
+                <span class="label">DATE CALIBRATION:</span>
+                <span class="value">
+                    <input type="date" id="calDate" onchange="setNextCal()">
+                    <span id="printCalDate"></span>
+                </span>
+            </div>
+            <div class="info-row"><span class="label">NEXT CALIBRATION:</span><span class="value"><input type="text" id="nextCal" readonly></span></div>
+            <div class="info-row"><span class="label">PREPARE BY:</span><span class="value"><input type="text" id="picInput" placeholder="Name"></span></div>
+            <div class="info-row"><span class="label">CONFIRM BY:</span><span class="value"><input type="text" id="confirmInput" placeholder="Name"></span></div>
+            <div class="info-row"><span class="label">MAKER:</span><span class="value"><input type="text" id="outMaker"></span></div>            
+        </div>
+    </div>
+
+    <table class="unified-table">
+        <tr><td colspan="4" class="sub-header">1. APPEARANCE</td></tr>
+        <tr><th>Physical Condition</th><th>Display / Writing</th><th>Operation Button</th><th>Rattle / Loosen / Damage</th></tr>
+        <tr>
+            <td><select class="app-check" onchange="checkTotal()"><option value="Good">Good</option><option value="Not Good">Not Good</option></select></td>
+            <td><select class="app-check" onchange="checkTotal()"><option value="Good">Good</option><option value="Not Good">Not Good</option></select></td>
+            <td><select class="app-check" onchange="checkTotal()"><option value="Good">Good</option><option value="Not Good">Not Good</option></select></td>
+            <td><select class="app-check" onchange="checkTotal()"><option value="Good">Good</option><option value="Not Good">Not Good</option></select></td>
+        </tr>
+    </table>
+
+    <table class="unified-table">
+        <tr><td colspan="9" class="sub-header">2. MEASUREMENT DATA</td></tr>
+        <tr>
+            <th rowspan="2" style="width: 15%;">STANDARD (A)</th>
+            <th colspan="3">ACTUAL VALUE (mm)</th>
+            <th rowspan="2" style="width: 15%;">AVERAGE (B)</th>
+            <th rowspan="2" style="width: 12%;">B - A</th>
+            <th colspan="2">TOLERANCE</th>
+            <th rowspan="2" style="width: 12%;">JUDGEMENT</th>
+        </tr>
+        <tr><th>1</th><th>2</th><th>3</th><th>MIN</th><th>MAX</th></tr>
+        <tbody id="measureBody"></tbody>
+    </table>
+
+    <div class="footer-container">
+        <div class="master-layout">
+            <table class="unified-table" id="masterTable">
+                <tr><td colspan="3" class="sub-header">3. MASTER STANDARD USE</td></tr>
+                <tr>
+                    <th style="width: 50%;">EQUIPMENT NAME</th>
+                    <th style="width: 25%;">CODE</th>
+                    <th style="width: 25%;">EXPIRY</th>
+                </tr>
+                <tbody id="masterBody">
+                    <tr>
+                        <td><input type="text" value="Gauge Block Set"></td>
+                        <td><input type="text" value="BECC30-09"></td>
+                        <td><input type="text" value="Aug '26"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="master-controls no-print">
+                <button class="action-btn" onclick="addMasterRow()">+ ADD</button>
+                <button class="action-btn" style="background:#dc3545;" onclick="deleteLastMasterRow()">- REMOVE</button>
+            </div>
+        </div>
+
+        <div class="summary-row-container">
+            <div class="period-box">
+                VERIFICATION PERIOD: 
+                <select id="intervalMonths" onchange="setNextCal()" style="width: 60px;"><option value="12">12</option><option value="24">24</option><option value="36">36</option></select> MONTHS
+            </div>
+            <div class="total-box">
+                <span style="font-size:10px; font-weight:bold;">FINAL JUDGEMENT:</span>
+                <span id="total-judge" class="total-result" style="color: orange;">PENDING</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="text-align:center; margin-top:20px;" class="no-print">
+    <button onclick="if(confirm('Reset all data?')) location.reload()" style="padding:10px 20px; background:#ffc107; border:none; font-weight:bold; cursor:pointer; border-radius:4px;">RESET FORM</button>
+    <button onclick="window.print()" style="padding:10px 40px; background:#4472c4; color:white; border:none; cursor:pointer; font-weight:bold; border-radius: 4px; margin-left: 10px;">PRINT REPORT</button>
+</div>
+
+<script>
+    const excelDatabase = [{"EQUIP CODE":"BECC00-20","SERIAL_NO":"76352838","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MDC-25MX"},{"EQUIP CODE":"BECC00-09","SERIAL_NO":"95055771","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"293-230"},{"EQUIP CODE":"BECC00-10","SERIAL_NO":"5123884","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"293-230"},{"EQUIP CODE":"BECC00-14","SERIAL_NO":"61041558","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"CLM1-15QMX"},{"EQUIP CODE":"BECC00-15","SERIAL_NO":"61034909","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"CLM1-15QMX"},{"EQUIP CODE":"BECC00-16","SERIAL_NO":"61041529","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"CLM1-15QMX"},{"EQUIP CODE":"BEFC00-14","SERIAL_NO":"71513017","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MDC-25MX"},{"EQUIP CODE":"BECC00-05","SERIAL_NO":"85229717","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"293-230"},{"EQUIP CODE":"BEDC00-13","SERIAL_NO":"75080140","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MITUTOYO (406-250)"},{"EQUIP CODE":"BEFC00-16","SERIAL_NO":"74218492","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MD-E25"},{"EQUIP CODE":"BEFC00-08","SERIAL_NO":"63339647","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MDE-25MX"},{"EQUIP CODE":"BEFC00-10","SERIAL_NO":"67937069","EQUIP NAME":"MICROMETER","MAKER":"MITUTOYO","MODEL":"MDE-25MX"},{"EQUIP CODE":"BEEC00-25","SERIAL_NO":"0243364693","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"INSIZE","MODEL":"3109-25A"},{"EQUIP CODE":"BEEC00-31","SERIAL_NO":"72748298","EQUIP NAME":"MICROMETER","MAKER":"MITUTOYO","MODEL":"MDE-25PX"},{"EQUIP CODE":"BEEC00-32","SERIAL_NO":"71744597","EQUIP NAME":"MICROMETER","MAKER":"MITUTOYO","MODEL":"MDE-25PX"},{"EQUIP CODE":"BEEC00-22","SERIAL_NO":"71214299","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"OMV-25MX"},{"EQUIP CODE":"BEEC00-23","SERIAL_NO":"72341966","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"BLM-25MXW/.4T"},{"EQUIP CODE":"BECC00-25","SERIAL_NO":"72213161","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MDC-25MX"},{"EQUIP CODE":"BECC00-23","SERIAL_NO":"71216863","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MDC-25MX"},{"EQUIP CODE":"BECC00-24","SERIAL_NO":"72216805","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MDC-25MX"},{"EQUIP CODE":"BEEC00-33","SERIAL_NO":"75328716","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MDC-25MX 293-230-30"},{"EQUIP CODE":"BEEC00-20","SERIAL_NO":"75174202","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"293-140"},{"EQUIP CODE":"BEEC00-21","SERIAL_NO":"75174485","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"293-140"},{"EQUIP CODE":"BEFC00-15","SERIAL_NO":"75228693","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MD-E25"},{"EQUIP CODE":"BEFC00-12","SERIAL_NO":"61000319","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"227-201"},{"EQUIP CODE":"BEFC00-13","SERIAL_NO":"72903360","EQUIP NAME":"MICROMETER","MAKER":"MITUTOYO","MODEL":"MDE-25MX"},{"EQUIP CODE":"BEFC00-09","SERIAL_NO":"61026838","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"CLM1-15QM"},{"EQUIP CODE":"BECC00-13","SERIAL_NO":"293-244-30","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MDC-25PXT"},{"EQUIP CODE":"BEDC00-15","SERIAL_NO":"610210-16","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"422-421"},{"EQUIP CODE":"BECC00-11","SERIAL_NO":"05123901","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"293-230"},{"EQUIP CODE":"BEFC00-07","SERIAL_NO":"61012428","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"BLM-30QM"},{"EQUIP CODE":"BEDC00-01","SERIAL_NO":"71902798","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MDE-25MX"},{"EQUIP CODE":"BEDC00-09","SERIAL_NO":"85260861","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"293-330"},{"EQUIP CODE":"BECC00-18","SERIAL_NO":"77167363","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MDC-25MX"},{"EQUIP CODE":"BEFC00-02","SERIAL_NO":"8015048","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"227-201"},{"EQUIP CODE":"BEFC00-06","SERIAL_NO":"31003569","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"227-201"},{"EQUIP CODE":"BEFC00-17","SERIAL_NO":"75435652","EQUIP NAME":"DIGITAL MICROMETER","MAKER":"MITUTOYO","MODEL":"MD-E25"}];
+
+    let fullDB = [];
+
+    function syncPrintCode() {
+        document.getElementById('printCodeText').innerText = document.getElementById('inputCode').value;
+    }
+
+    function formatDateMMDDYY(date) {
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        const yy = String(date.getFullYear());
+        return `${mm}-${dd}-${yy}`;
+    }
+
+    function initSystem() {
+        const local = JSON.parse(localStorage.getItem('savedEquip')) || [];
+        fullDB = [...excelDatabase, ...local];
+        
+        const today = new Date();
+        document.getElementById('calDate').value = today.toISOString().split('T')[0];
+
+        const dl = document.getElementById('equipList');
+        dl.innerHTML = "";
+        fullDB.forEach(t => {
+            const option = document.createElement('option');
+            option.value = t['EQUIP CODE'].trim();
+            dl.appendChild(option);
+        });
+
+        const st = [2.2, 4.8, 7.8, 10.4, 12.0, 15.2];
+        const tb = document.getElementById('measureBody');
+        tb.innerHTML = "";
+        st.forEach((v, i) => {
+            tb.innerHTML += `<tr class="m-row">
+                <td style="font-weight:bold;">${v.toFixed(1)}</td>
+                <td><input type="number" class="v1" step="0.001" oninput="update(${i})"></td>
+                <td><input type="number" class="v2" step="0.001" oninput="update(${i})"></td>
+                <td><input type="number" class="v3" step="0.001" oninput="update(${i})"></td>
+                <td class="avg calc-cell">-</td><td class="diff calc-cell">-</td>
+                <td><input type="number" class="t-min" value="-0.005" step="0.001" oninput="update(${i})"></td>
+                <td><input type="number" class="t-max" value="0.005" step="0.001" oninput="update(${i})"></td>
+                <td class="judge calc-cell">-</td></tr>`;
+        });
+
+        setNextCal();
+    }
+
+    function setNextCal() {
+        const d = document.getElementById('calDate').value;
+        const m = parseInt(document.getElementById('intervalMonths').value);
+        if(d) {
+            const calDateObj = new Date(d);
+            document.getElementById('printCalDate').innerText = formatDateMMDDYY(calDateObj);
+            
+            let nextDateObj = new Date(d);
+            nextDateObj.setMonth(nextDateObj.getMonth() + m);
+            document.getElementById('nextCal').value = formatDateMMDDYY(nextDateObj);
+        }
+    }
+
+    function autoFill() {
+        const val = document.getElementById('inputCode').value.trim().toUpperCase();
+        const item = fullDB.find(i => i['EQUIP CODE'].trim().toUpperCase() === val);
+        if (item) {
+            document.getElementById('outName').value = item['EQUIP NAME'];
+            document.getElementById('outSerial').value = item['SERIAL_NO'];
+            document.getElementById('outMaker').value = item['MAKER'] || "MITUTOYO";
+            document.getElementById('outModel').value = item['MODEL'] || "";
+            document.getElementById('outClass').value = item['CLASS'] || "ORDINARY 1ST CLASS";
+            syncPrintCode();
+            handleClassChange();
+        }
+    }
+
+    function update(i) {
+        const r = document.querySelectorAll('.m-row')[i];
+        const std = parseFloat(r.cells[0].innerText);
+        const v1 = parseFloat(r.querySelector('.v1').value), v2 = parseFloat(r.querySelector('.v2').value), v3 = parseFloat(r.querySelector('.v3').value);
+        if (!isNaN(v1) && !isNaN(v2) && !isNaN(v3)) {
+            const avg = (v1 + v2 + v3) / 3, diff = avg - std;
+            r.querySelector('.avg').innerText = avg.toFixed(4);
+            r.querySelector('.diff').innerText = diff.toFixed(4);
+            const min = parseFloat(r.querySelector('.t-min').value), max = parseFloat(r.querySelector('.t-max').value);
+            const res = (diff >= min && diff <= max) ? "PASS" : "FAIL";
+            r.querySelector('.judge').innerText = res;
+            r.querySelector('.judge').className = "judge calc-cell " + res.toLowerCase();
+        }
+        checkTotal();
+    }
+
+    function checkTotal() {
+        const js = document.querySelectorAll('.judge'), as = document.querySelectorAll('.app-check');
+        let f = "PASS", comp = Array.from(js).every(j => j.innerText !== "-");
+        as.forEach(a => { if(a.value === "Not Good") f = "FAIL"; });
+        js.forEach(j => { if(j.innerText === "FAIL") f = "FAIL"; });
+        const box = document.getElementById('total-judge');
+        box.innerText = comp ? f : "PENDING";
+        box.style.color = comp ? (f === "PASS" ? "green" : "red") : "orange";
+    }
+
+    function addMasterRow() {
+        const tbody = document.getElementById('masterBody');
+        const row = tbody.insertRow(-1);
+        row.innerHTML = `<td><input type="text"></td><td><input type="text"></td><td><input type="text"></td>`;
+    }
+    function deleteLastMasterRow() {
+        const tbody = document.getElementById('masterBody');
+        if (tbody.rows.length > 1) tbody.deleteRow(-1);
+    }
+    function saveToLocal() {
+        const code = document.getElementById('inputCode').value.toUpperCase();
+        if(!code) return alert("Enter Code!");
+        const existing = JSON.parse(localStorage.getItem('savedEquip')) || [];
+        existing.push({
+            "EQUIP CODE": code, "SERIAL_NO": document.getElementById('outSerial').value,
+            "EQUIP NAME": document.getElementById('outName').value, "MAKER": document.getElementById('outMaker').value,
+            "MODEL": document.getElementById('outModel').value, "CLASS": document.getElementById('outClass').value
+        });
+        localStorage.setItem('savedEquip', JSON.stringify(existing));
+        alert("Saved to Browser Memory!"); initSystem();
+    }
+    function handleClassChange() {
+        const cls = document.getElementById('outClass').value.trim().toUpperCase();
+        const tol = (cls === "ORDINARY 1ST CLASS") ? 0.005 : 0.003;
+        document.querySelectorAll('.m-row').forEach((row, i) => {
+            row.querySelector('.t-min').value = (tol * -1).toFixed(3);
+            row.querySelector('.t-max').value = tol.toFixed(3);
+            update(i);
+        });
+    }
+</script>
+</body>
+</html>
