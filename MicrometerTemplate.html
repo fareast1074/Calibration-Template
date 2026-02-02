@@ -92,7 +92,7 @@
                     <div class="search-container no-print">
                         <input type="text" id="inputCode" list="equipList" placeholder="Search code..." oninput="syncPrintCode()">
                         <datalist id="equipList"></datalist>
-                        <button class="search-btn" onclick="autoFill()">SEARCH</button>
+                        <button class="search-btn" onclick="autoFill()">Show Detail</button>
                     </div>
                     <span id="printCodeText"></span>
                 </span>
@@ -246,9 +246,11 @@
         }
     }
 
-    function autoFill() {
-        const val = document.getElementById('inputCode').value.trim().toUpperCase();
+function autoFill() {
+        const inputField = document.getElementById('inputCode');
+        const val = inputField.value.trim().toUpperCase();
         const item = fullDB.find(i => i['EQUIP CODE'].trim().toUpperCase() === val);
+        
         if (item) {
             document.getElementById('outName').value = item['EQUIP NAME'];
             document.getElementById('outSerial').value = item['SERIAL_NO'];
@@ -257,6 +259,20 @@
             document.getElementById('outClass').value = item['CLASS'] || "ORDINARY 1ST CLASS";
             syncPrintCode();
             handleClassChange();
+        } else {
+            // Repair: Show message if not found
+            alert("This equipment is not registered.");
+            
+            // Clear fields to prevent confusion
+            document.getElementById('outName').value = "";
+            document.getElementById('outSerial').value = "";
+            document.getElementById('outMaker').value = "";
+            document.getElementById('outModel').value = "";
+            document.getElementById('printCodeText').innerText = "";
+            
+            // Focus back on search for convenience
+            inputField.value = "";
+            inputField.focus();
         }
     }
 
@@ -319,5 +335,6 @@
 </script>
 </body>
 </html>
+
 
 
